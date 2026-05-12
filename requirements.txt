@@ -1,25 +1,17 @@
-# Core scientific stack
+# Core (always required)
 numpy>=1.26
 scipy>=1.11
 numba>=0.59
-
-# Machine learning
 scikit-learn>=1.4
-
-# GUIs
-dearpygui>=1.11
-streamlit>=1.28
-plotly>=5.18
-
-# Audio / generative art
 sounddevice>=0.4
 soundfile>=0.12
-
-# HackRF bindings (primary)
-python-hackrf>=0.3
-
-# Alternative HackRF binding (fallback)
-# SoapySDR  -- install manually on your platform
-
-# Serial for multi-HackRF sync
 pyserial>=3.5
+
+# Optional GUI backends (install at least one):
+#   dearpygui>=1.11       (native real-time dashboard)
+#   streamlit>=1.28       (web-based dashboard)
+#   plotly>=5.18          (Streamlit charts)
+
+# Optional hardware backends:
+#   python-hackrf>=0.3    (native HackRF - requires libhackrf SDK)
+#   SoapySDR              (fallback - requires HackRF driver)

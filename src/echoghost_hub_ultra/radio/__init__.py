@@ -2,6 +2,7 @@
 
 from .backend import BackendUnavailableError, IQFrame, RadioBackend
 from .hackrf_backend import HackRFBackend
+from .multi_hackrf import MultiHackRFBackend, MultiHackrfConfig
 from .session import DashboardSnapshot, RFSession
 from .simulator import SimulationBackend
 
@@ -10,6 +11,8 @@ __all__ = [
     "DashboardSnapshot",
     "HackRFBackend",
     "IQFrame",
+    "MultiHackRFBackend",
+    "MultiHackrfConfig",
     "RFSession",
     "RadioBackend",
     "SimulationBackend",

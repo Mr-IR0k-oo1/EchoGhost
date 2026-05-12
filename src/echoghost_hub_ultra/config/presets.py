@@ -20,7 +20,17 @@ class WaveformKind(str, Enum):
     TONE = "tone"
     CHIRP = "chirp"
     CHAOTIC = "chaotic"
+    CHAOTIC_HENON = "chaotic_henon"
+    CHAOTIC_LORENZ = "chaotic_lorenz"
+    CHAOTIC_KS = "chaotic_ks"
     PRN = "prn"
+
+
+class ChaoticMapType(str, Enum):
+    LOGISTIC = "logistic"
+    HENON = "henon"
+    LORENZ = "lorenz"
+    KURAMOTO_SIVASHINSKY = "kuramoto_sivashinsky"
 
 
 @dataclass(slots=True)
@@ -69,6 +79,26 @@ class SimulationConfig:
     leakage_gain: float = 0.18
     noise_std: float = 0.018
     seed: int = 2026
+
+
+@dataclass(slots=True)
+class PassiveConfig:
+    detect_wifi_beacons: bool = True
+    ambient_energy_threshold_db: float = -60.0
+    ism_band_hz: tuple[float, float] = (2_400_000_000.0, 2_500_000_000.0)
+
+
+@dataclass(slots=True)
+class AdaptiveConfig:
+    enabled: bool = False
+    snr_window_size: int = 16
+    spread_hz_min: float = 50_000.0
+    spread_hz_max: float = 1_000_000.0
+    chaotic_rate_min: float = 3.5
+    chaotic_rate_max: float = 3.99
+    amplitude_min: float = 0.1
+    amplitude_max: float = 0.8
+    learning_rate: float = 0.05
 
 
 @dataclass(slots=True)

@@ -1,0 +1,8 @@
+fastapi>=0.111
+uvicorn[standard]>=0.29
+python-socketio>=5.11
+numpy>=1.26
+scipy>=1.11
+pydantic>=2.7
+python-multipart>=0.0.9
+# echoghost-hub-ultra is imported from ../src

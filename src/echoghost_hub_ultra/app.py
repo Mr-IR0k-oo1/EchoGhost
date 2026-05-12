@@ -9,7 +9,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from .config.presets import DashboardConfig, OperatingMode, ProcessingConfig, RadioConfig, SimulationConfig, WaveformConfig, WaveformKind
+from .config.presets import AdaptiveConfig, DashboardConfig, OperatingMode, PassiveConfig, ProcessingConfig, RadioConfig, SimulationConfig, WaveformConfig, WaveformKind
 from .radio.session import RFSession
 from .visualization.panels import heatmap_to_rgba
 
@@ -34,7 +34,7 @@ class UiTags:
 
 def build_argument_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="EchoGhost Hub Ultra dashboard")
-    parser.add_argument("--backend", choices=["simulation", "hackrf", "soapy", "hardware"], default="simulation")
+    parser.add_argument("--backend", choices=["simulation", "hackrf", "soapy", "hardware", "multi_hackrf"], default="simulation")
     parser.add_argument("--mode", choices=[mode.value for mode in OperatingMode], default=OperatingMode.SIMULATION.value)
     parser.add_argument("--waveform", choices=[kind.value for kind in WaveformKind], default=WaveformKind.TONE.value)
     parser.add_argument("--center-frequency", type=float, default=915_000_000.0)
@@ -46,6 +46,8 @@ def build_argument_parser() -> argparse.ArgumentParser:
     parser.add_argument("--headless", action="store_true", help="Run the processing loop without the GUI.")
     parser.add_argument("--frames", type=int, default=0, help="Number of frames to print in headless mode; 0 means run until interrupted.")
     parser.add_argument("--application-title", default="EchoGhost Hub Ultra")
+    parser.add_argument("--adaptive", action="store_true", help="Enable adaptive waveform morphing.")
+    parser.add_argument("--gui", choices=["dearpygui", "streamlit"], default="dearpygui", help="Which GUI framework to use.")
     return parser
 
 
@@ -63,12 +65,16 @@ def build_session(args: argparse.Namespace) -> RFSession:
     dashboard_config = DashboardConfig(refresh_hz=args.refresh_hz, application_title=args.application_title)
     processing_config = ProcessingConfig()
     simulation_config = SimulationConfig()
+    passive_config = PassiveConfig()
+    adaptive_config = AdaptiveConfig(enabled=getattr(args, "adaptive", False))
     return RFSession(
         radio_config=radio_config,
         waveform_config=waveform_config,
         processing_config=processing_config,
         dashboard_config=dashboard_config,
         simulation_config=simulation_config,
+        passive_config=passive_config,
+        adaptive_config=adaptive_config,
     )
 
 
@@ -240,6 +246,13 @@ def run_gui(session: RFSession) -> int:
 def main(argv: list[str] | None = None) -> int:
     parser = build_argument_parser()
     args = parser.parse_args(argv)
+    if args.gui == "streamlit" and not args.headless:
+        try:
+            from .visualization.streamlit_app import run_streamlit_dashboard
+            run_streamlit_dashboard()
+            return 0
+        except ImportError:
+            print("Streamlit not installed, falling back to Dear PyGui.")
     session = build_session(args)
     if args.headless:
         return run_headless(session, frame_limit=args.frames)

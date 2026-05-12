@@ -8,13 +8,14 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
-from ..config.presets import DashboardConfig, OperatingMode, ProcessingConfig, RadioConfig, SimulationConfig, WaveformConfig, WaveformKind
+from ..config.presets import AdaptiveConfig, DashboardConfig, OperatingMode, PassiveConfig, ProcessingConfig, RadioConfig, SimulationConfig, WaveformConfig, WaveformKind
 from ..processing.motion import MotionDetector
 from ..processing.range_doppler import RangeHeatmap, RangeHeatmapResult
 from ..processing.vitals import BreathingEstimator
 from ..waveforms.factory import create_waveform_generator
 from .backend import BackendUnavailableError, IQFrame, RadioBackend
 from .hackrf_backend import HackRFBackend
+from .multi_hackrf import MultiHackRFBackend
 from .simulator import SimulationBackend
 
 
@@ -34,6 +35,8 @@ class DashboardSnapshot:
     motion_confidence: float
     breathing_bpm: float | None
     breathing_confidence: float
+    ambient_energy_db: float
+    ambient_packet_count: int
     spectrum_frequency_hz: np.ndarray
     spectrum_db: np.ndarray
     motion_history: np.ndarray
@@ -52,12 +55,16 @@ class RFSession:
         processing_config: ProcessingConfig | None = None,
         dashboard_config: DashboardConfig | None = None,
         simulation_config: SimulationConfig | None = None,
+        passive_config: PassiveConfig | None = None,
+        adaptive_config: AdaptiveConfig | None = None,
     ) -> None:
         self.radio_config = radio_config or RadioConfig()
         self.waveform_config = waveform_config or WaveformConfig()
         self.processing_config = processing_config or ProcessingConfig()
         self.dashboard_config = dashboard_config or DashboardConfig()
         self.simulation_config = simulation_config or SimulationConfig()
+        self.passive_config = passive_config or PassiveConfig()
+        self.adaptive_config = adaptive_config or AdaptiveConfig()
         self._mode = self.radio_config.mode
         self._waveform_kind = WaveformKind(self.waveform_config.kind)
         self._stop_event = threading.Event()
@@ -78,6 +85,7 @@ class RFSession:
         )
         self._waveform_generator = create_waveform_generator(self.waveform_config, self.radio_config.sample_rate_sps)
         self._start_time = time.monotonic()
+        self._ambient_energy_history: list[float] = []
 
     @property
     def mode(self) -> OperatingMode:
@@ -169,12 +177,27 @@ class RFSession:
 
     def _build_backend(self) -> RadioBackend:
         backend_name = self.radio_config.backend.lower().strip()
+        if backend_name in {"multi_hackrf", "multi"}:
+            from .multi_hackrf import MultiHackrfConfig
+            multi_cfg = MultiHackrfConfig(tx_device_index=0, rx_device_indices=(1,))
+            try:
+                return MultiHackRFBackend(self.radio_config, multi_cfg)
+            except BackendUnavailableError:
+                pass
         if backend_name in {"hackrf", "hardware", "soapy"}:
             try:
                 return HackRFBackend(self.radio_config)
             except BackendUnavailableError:
                 return SimulationBackend(self.radio_config, self.simulation_config)
         return SimulationBackend(self.radio_config, self.simulation_config)
+
+    @staticmethod
+    def _estimate_ambient_energy(samples: np.ndarray) -> tuple[float, int]:
+        energy = float(20.0 * np.log10(np.mean(np.abs(samples)) + 1e-12))
+        power_fft = np.abs(np.fft.fft(samples)) ** 2
+        threshold = np.mean(power_fft) + 2.0 * np.std(power_fft)
+        peaks = int(np.sum(power_fft > threshold))
+        return energy, peaks
 
     def _process_frame(self, frame: IQFrame) -> DashboardSnapshot:
         timestamp_s = time.monotonic() - self._start_time
@@ -187,6 +210,14 @@ class RFSession:
         breathing_history_bpm = np.asarray(self._breathing_estimator.bpm_history, dtype=np.float32)
         iq_preview = np.asarray(frame.samples[: min(256, frame.samples.size)], dtype=np.complex64)
 
+        ambient_energy_db, ambient_packets = self._estimate_ambient_energy(frame.samples)
+        self._ambient_energy_history.append(ambient_energy_db)
+        if len(self._ambient_energy_history) > 64:
+            self._ambient_energy_history.pop(0)
+
+        if self._mode is OperatingMode.PASSIVE:
+            self._status_text = f"Passive sensing: {ambient_energy_db:.1f} dB ambient, {ambient_packets} peaks"
+
         return DashboardSnapshot(
             timestamp_s=timestamp_s,
             backend_name=frame.backend_name,
@@ -195,6 +226,8 @@ class RFSession:
             center_frequency_hz=frame.center_frequency_hz,
             sample_rate_sps=frame.sample_rate_sps,
             status_text=self._status_text,
+            ambient_energy_db=ambient_energy_db,
+            ambient_packet_count=ambient_packets,
             motion_score=motion_metrics.motion_score,
             motion_label=motion_metrics.motion_label,
             motion_confidence=motion_metrics.motion_confidence,
@@ -218,6 +251,8 @@ class RFSession:
             center_frequency_hz=self.radio_config.center_frequency_hz,
             sample_rate_sps=self.radio_config.sample_rate_sps,
             status_text=status_text,
+            ambient_energy_db=-120.0,
+            ambient_packet_count=0,
             motion_score=0.0,
             motion_label="idle",
             motion_confidence=0.0,

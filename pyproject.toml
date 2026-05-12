@@ -4,10 +4,28 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "echoghost-hub-ultra"
-version = "0.1.0"
+version = "0.2.0"
 description = "Unified multi-mode RF sensing dashboard for HackRF-based motion, vital signs, and generative signal experiments."
 readme = "README.md"
 requires-python = ">=3.11"
+dependencies = [
+    "numpy>=1.26",
+    "scipy>=1.11",
+    "numba>=0.59",
+    "scikit-learn>=1.4",
+    "sounddevice>=0.4",
+    "soundfile>=0.12",
+    "pyserial>=3.5",
+]
+
+[project.optional-dependencies]
+gui-dearpygui = ["dearpygui>=1.11"]
+gui-streamlit = ["streamlit>=1.28", "plotly>=5.18"]
+hardware-hackrf = ["python-hackrf>=0.3"]
+hardware-soapy = []  # SoapySDR must be installed manually (platform-dependent)
+all = [
+    "echoghost-hub-ultra[gui-dearpygui,gui-streamlit,hardware-hackrf]",
+]
 
 [tool.setuptools]
 package-dir = {"" = "src"}

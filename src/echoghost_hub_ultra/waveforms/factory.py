@@ -2,9 +2,17 @@
 
 from __future__ import annotations
 
-from .chaotic import ChaoticWaveformGenerator
+from .chaotic import ChaoticMapType, ChaoticWaveformGenerator
 from .continuous import ContinuousToneGenerator, FMCWChirpGenerator, PseudoRandomNoiseGenerator
 from ..config.presets import WaveformConfig, WaveformKind
+
+
+_WAVEFORM_TO_CHAOTIC_MAP: dict[WaveformKind, ChaoticMapType] = {
+    WaveformKind.CHAOTIC: ChaoticMapType.LOGISTIC,
+    WaveformKind.CHAOTIC_HENON: ChaoticMapType.HENON,
+    WaveformKind.CHAOTIC_LORENZ: ChaoticMapType.LORENZ,
+    WaveformKind.CHAOTIC_KS: ChaoticMapType.KURAMOTO_SIVASHINSKY,
+}
 
 
 def _coerce_kind(kind: WaveformKind | str) -> WaveformKind:
@@ -29,13 +37,14 @@ def create_waveform_generator(config: WaveformConfig, sample_rate_sps: float):
             sample_rate_sps=sample_rate_sps,
             amplitude=config.tone_amplitude,
         )
-    if kind is WaveformKind.CHAOTIC:
+    if kind in _WAVEFORM_TO_CHAOTIC_MAP:
         return ChaoticWaveformGenerator(
             sample_rate_sps=sample_rate_sps,
             amplitude=config.tone_amplitude,
             chaotic_rate=config.chaotic_rate,
             spread_hz=config.chaotic_spread_hz,
             seed=config.prn_seed,
+            map_type=_WAVEFORM_TO_CHAOTIC_MAP[kind],
         )
     if kind is WaveformKind.PRN:
         return PseudoRandomNoiseGenerator(
