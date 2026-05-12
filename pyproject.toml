@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "echoghost-hub-ultra"
+version = "0.1.0"
+description = "Unified multi-mode RF sensing dashboard for HackRF-based motion, vital signs, and generative signal experiments."
+readme = "README.md"
+requires-python = ">=3.11"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[project.scripts]
+echoghost-hub-ultra = "echoghost_hub_ultra.app:main"
