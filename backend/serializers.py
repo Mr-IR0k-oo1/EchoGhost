@@ -10,9 +10,13 @@ _SRC = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src"))
 if _SRC not in sys.path:
     sys.path.insert(0, _SRC)
 
+_BACKEND = os.path.abspath(os.path.dirname(__file__))
+if _BACKEND not in sys.path:
+    sys.path.insert(0, _BACKEND)
+
 from echoghost_hub_ultra.radio.session import DashboardSnapshot
 
-from .config import MotionData, BreathingData, PositionData, SensingFrame
+from config import MotionData, BreathingData, PositionData, SensingFrame
 
 
 def _downsample_spectrum(spectrum_db: np.ndarray, target: int = 256) -> list[float]:
@@ -25,7 +29,9 @@ def _downsample_spectrum(spectrum_db: np.ndarray, target: int = 256) -> list[flo
     return arr[indices].tolist()
 
 
-def _downsample_heatmap(matrix_db: np.ndarray, max_rows: int = 32, max_cols: int = 64) -> tuple[int, int, list[float]]:
+def _downsample_heatmap(
+    matrix_db: np.ndarray, max_rows: int = 32, max_cols: int = 64
+) -> tuple[int, int, list[float]]:
     arr = np.asarray(matrix_db, dtype=np.float32)
     if arr.size == 0 or arr.ndim < 2:
         return (0, 0, [])
@@ -36,7 +42,9 @@ def _downsample_heatmap(matrix_db: np.ndarray, max_rows: int = 32, max_cols: int
     return downsampled.shape[0], downsampled.shape[1], downsampled.ravel().tolist()
 
 
-def _estimate_positions(spectrum_db: np.ndarray, motion_score: float, motion_label: str) -> list[dict[str, float]]:
+def _estimate_positions(
+    spectrum_db: np.ndarray, motion_score: float, motion_label: str
+) -> list[dict[str, float]]:
     """Derive approximate 3D positions from spectrum energy peaks."""
     arr = np.asarray(spectrum_db, dtype=np.float32)
     if arr.size < 4 or motion_score < 1e-5:
@@ -46,12 +54,30 @@ def _estimate_positions(spectrum_db: np.ndarray, motion_score: float, motion_lab
     threshold = float(np.mean(energy)) + 1.5 * float(np.std(energy))
     peaks = []
     for i in range(1, arr.size - 1):
-        if energy[i] > threshold and energy[i] > energy[i - 1] and energy[i] > energy[i + 1]:
+        if (
+            energy[i] > threshold
+            and energy[i] > energy[i - 1]
+            and energy[i] > energy[i + 1]
+        ):
             normalised_i = i / max(arr.size - 1, 1)
             x = 2.0 * normalised_i - 1.0
-            intensity = float(np.clip((energy[i] - threshold) / (energy.max() - threshold + 1e-12), 0.0, 1.0))
+            intensity = float(
+                np.clip(
+                    (energy[i] - threshold) / (energy.max() - threshold + 1e-12),
+                    0.0,
+                    1.0,
+                )
+            )
             z = float(np.clip(motion_score * 10.0, 0.0, 2.0))
-            peaks.append({"x": x * 3.0, "y": float(np.sin(i * 0.5) * 0.5), "z": z, "intensity": intensity, "label": motion_label})
+            peaks.append(
+                {
+                    "x": x * 3.0,
+                    "y": float(np.sin(i * 0.5) * 0.5),
+                    "z": z,
+                    "intensity": intensity,
+                    "label": motion_label,
+                }
+            )
             if len(peaks) >= 5:
                 break
     return peaks
@@ -59,8 +85,12 @@ def _estimate_positions(spectrum_db: np.ndarray, motion_score: float, motion_lab
 
 def serialize_frame(snapshot: DashboardSnapshot) -> SensingFrame:
     spectrum = _downsample_spectrum(snapshot.spectrum_db, target=256)
-    hr, hc, hdata = _downsample_heatmap(snapshot.heatmap_result.matrix_db, max_rows=32, max_cols=64)
-    positions = _estimate_positions(snapshot.spectrum_db, snapshot.motion_score, snapshot.motion_label)
+    hr, hc, hdata = _downsample_heatmap(
+        snapshot.heatmap_result.matrix_db, max_rows=32, max_cols=64
+    )
+    positions = _estimate_positions(
+        snapshot.spectrum_db, snapshot.motion_score, snapshot.motion_label
+    )
 
     return SensingFrame(
         t=snapshot.timestamp_s,

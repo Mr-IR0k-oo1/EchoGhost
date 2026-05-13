@@ -9,6 +9,10 @@ _SRC = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src"))
 if _SRC not in sys.path:
     sys.path.insert(0, _SRC)
 
+_BACKEND = os.path.abspath(os.path.dirname(__file__))
+if _BACKEND not in sys.path:
+    sys.path.insert(0, _BACKEND)
+
 from echoghost_hub_ultra.config.presets import (
     AdaptiveConfig,
     DashboardConfig,
@@ -22,8 +26,8 @@ from echoghost_hub_ultra.config.presets import (
 )
 from echoghost_hub_ultra.radio.session import DashboardSnapshot, RFSession
 
-from .config import SensingFrame, ServerStatus, SessionConfig
-from .serializers import serialize_frame
+from config import SensingFrame, ServerStatus, SessionConfig
+from serializers import serialize_frame
 
 
 class SensingBridge:

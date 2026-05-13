@@ -73,7 +73,7 @@ class SensingFrame(BaseModel):
     heatmap_rows: int = 0
     heatmap_cols: int = 0
     heatmap_data: list[float] = Field(default_factory=list)
-    positions: list[dict[str, float]] = Field(default_factory=list)
+    positions: list[PositionData] = Field(default_factory=list)
 
 
 class ServerStatus(BaseModel):

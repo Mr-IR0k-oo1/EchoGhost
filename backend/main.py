@@ -13,8 +13,12 @@ _SRC = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src"))
 if _SRC not in sys.path:
     sys.path.insert(0, _SRC)
 
-from .bridge import SensingBridge
-from .config import SensingFrame, SessionConfig
+_BACKEND = os.path.abspath(os.path.dirname(__file__))
+if _BACKEND not in sys.path:
+    sys.path.insert(0, _BACKEND)
+
+from bridge import SensingBridge
+from config import SensingFrame, SessionConfig
 
 app = FastAPI(title="EchoGhost Hub Ultra — Web API")
 
@@ -30,6 +34,7 @@ bridge = SensingBridge()
 
 
 # ─── REST Endpoints ───────────────────────────────────────────────
+
 
 @app.get("/api/status")
 async def get_status():
@@ -63,6 +68,7 @@ async def get_latest_frame():
 
 
 # ─── WebSocket ────────────────────────────────────────────────────
+
 
 @app.websocket("/ws/sensing")
 async def websocket_sensing(websocket: WebSocket):
@@ -137,4 +143,5 @@ async def _stream_frames(websocket: WebSocket) -> None:
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("backend.main:app", host="0.0.0.0", port=8000, reload=True)
+
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

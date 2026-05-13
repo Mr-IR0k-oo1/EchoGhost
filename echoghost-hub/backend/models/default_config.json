@@ -1,0 +1,47 @@
+{
+  "hackrf": {
+    "frequency_hz": 915000000,
+    "sample_rate_hz": 20000000.0,
+    "lna_gain_db": 16,
+    "vga_gain_db": 16,
+    "amp_enable": false,
+    "bandwidth_hz": 20000000.0,
+    "txvga_gain_db": 10
+  },
+  "radar": {
+    "mode": "active_chaotic",
+    "waveform_type": "chaotic",
+    "pulse_repetition_hz": 1000.0,
+    "chirp_bw_hz": 20000000.0,
+    "chirp_duration_s": 0.001,
+    "max_range_m": 30.0,
+    "range_bins": 128,
+    "doppler_bins": 64,
+    "cpi_length": 256,
+    "chaos_bandwidth_hz": 20000000.0,
+    "tx_amplitude": 0.5,
+    "use_tcxo": true
+  },
+  "processing": {
+    "baseline_alpha": 0.01,
+    "breathing_low_cut": 0.1,
+    "breathing_high_cut": 0.8,
+    "motion_threshold": 0.05,
+    "doppler_fft_size": 256,
+    "micro_doppler_overlap": 0.9,
+    "numba_enabled": true,
+    "enable_ml_classifier": true
+  },
+  "safety": {
+    "max_tx_power_dbm": 10,
+    "default_tx_power_dbm": 5,
+    "enable_tx_safety": true,
+    "require_dummy_load_warning": true,
+    "legal_bands_mhz": [[902, 928], [2400, 2483.5]],
+    "max_continuous_tx_seconds": 30.0,
+    "cooldown_seconds": 10.0
+  },
+  "websocket_host": "0.0.0.0",
+  "websocket_port": 8000,
+  "update_interval_hz": 20.0
+}
